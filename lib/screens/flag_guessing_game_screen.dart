@@ -13,7 +13,7 @@ class FlagGuessingGameScreen extends StatelessWidget {
     return Consumer<GameLogic>(
       builder: (context, gameLogic, child) {
         return Scaffold(
-          backgroundColor: Color(0xFF1E3A8A), // Dark blue background
+          backgroundColor: Color(0xFF1E3A8A),
           body: SafeArea(
             child: Column(
               children: [
@@ -26,14 +26,17 @@ class FlagGuessingGameScreen extends StatelessWidget {
                   icon: Icon(Icons.refresh),
                   label: Text('Change Flag'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3B82F6), // Light blue button
+                    backgroundColor: Color(0xFF3B82F6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                 ),
                 SizedBox(height: 20),
-                AnswerBoxes(answerBoxes: gameLogic.answerBoxes),
+                AnswerBoxes(
+                  answerBoxes: gameLogic.answerBoxes,
+                  currentIndex: gameLogic.currentIndex,
+                ),
                 SizedBox(height: 20),
                 LetterButtons(
                   buttonLetters: gameLogic.buttonLetters,

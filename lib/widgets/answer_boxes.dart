@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 
 class AnswerBoxes extends StatelessWidget {
   final List<AnswerBox> answerBoxes;
+  final int currentIndex;
 
-  const AnswerBoxes({Key? key, required this.answerBoxes}) : super(key: key);
+  const AnswerBoxes({
+    Key? key,
+    required this.answerBoxes,
+    required this.currentIndex,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -12,17 +17,40 @@ class AnswerBoxes extends StatelessWidget {
       alignment: WrapAlignment.center,
       spacing: 8,
       runSpacing: 8,
-      children: answerBoxes.map((box) => _buildBox(box)).toList(),
+      children: answerBoxes.asMap().entries.map((entry) {
+        int index = entry.key;
+        AnswerBox box = entry.value;
+        return _buildBox(box, index == currentIndex);
+      }).toList(),
     );
   }
 
-  Widget _buildBox(AnswerBox box) {
+  Widget _buildBox(AnswerBox box, bool isCurrent) {
+    Color boxColor;
+    switch (box.status) {
+      case 'correct':
+        boxColor = Colors.green;
+        break;
+      case 'incorrect':
+        boxColor = Colors.red;
+        break;
+      case 'prefilled':
+        boxColor = Color(0xFF60A5FA);
+        break;
+      case 'empty':
+        boxColor = Color(0xFF3B82F6);
+        break;
+      default:
+        boxColor = Color(0xFF60A5FA);
+    }
+
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: box.status == 'empty' ? Color(0xFF3B82F6) : Color(0xFF60A5FA),
+        color: boxColor,
         borderRadius: BorderRadius.circular(8),
+        border: isCurrent ? Border.all(color: Colors.yellow, width: 2) : null,
       ),
       child: Center(
         child: Text(

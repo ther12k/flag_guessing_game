@@ -6,6 +6,7 @@ import 'package:flag_guessing_game/utils/constants.dart';
 import 'package:flag_guessing_game/utils/helpers.dart';
 
 class GameLogic extends ChangeNotifier {
+  int currentIndex = 0;
   String gameMode;
   late Flag currentFlag;
   List<AnswerBox> answerBoxes = [];
@@ -41,10 +42,12 @@ class GameLogic extends ChangeNotifier {
   }
 
   void setupFlag(Flag flag) {
-    final countryLetters = flag.country.toUpperCase().replaceAll(' ', '').split('');
+    final countryLetters =
+        flag.country.toUpperCase().replaceAll(' ', '').split('');
     final preFilledCount = getPreFilledCount(countryLetters.length, gameMode);
-    final preFilledIndices = shuffleArray(List.generate(countryLetters.length, (index) => index))
-        .sublist(0, preFilledCount);
+    final preFilledIndices =
+        shuffleArray(List.generate(countryLetters.length, (index) => index))
+            .sublist(0, preFilledCount);
 
     answerBoxes = countryLetters.asMap().entries.map((entry) {
       final index = entry.key;
@@ -57,6 +60,7 @@ class GameLogic extends ChangeNotifier {
     }).toList();
 
     buttonLetters = getButtonLetters(flag.country);
+    currentIndex = answerBoxes.indexWhere((box) => box.status == 'empty');
   }
 
   void resetLives() {
@@ -65,7 +69,11 @@ class GameLogic extends ChangeNotifier {
 
   void resetTimer() {
     _timer?.cancel();
-    timer = gameMode == 'easy' ? 60 : gameMode == 'medium' ? 45 : 30;
+    timer = gameMode == 'easy'
+        ? 60
+        : gameMode == 'medium'
+            ? 45
+            : 30;
     _startTimer();
   }
 
@@ -81,24 +89,61 @@ class GameLogic extends ChangeNotifier {
   }
 
   void handleLetterInput(String letter) {
-    int emptyIndex = answerBoxes.indexWhere((box) => box.status == 'empty');
-    if (emptyIndex != -1) {
-      final isCorrect = currentFlag.country.toUpperCase().replaceAll(' ', '')[emptyIndex] == letter;
-      answerBoxes[emptyIndex] = AnswerBox(
+    if (currentIndex < answerBoxes.length &&
+        answerBoxes[currentIndex].status != 'prefilled') {
+      final correctLetter =
+          currentFlag.country.toUpperCase().replaceAll(' ', '')[currentIndex];
+      final isCorrect = correctLetter == letter;
+      answerBoxes[currentIndex] = AnswerBox(
         letter: letter,
-        status: gameMode == 'veryEasy' && isCorrect ? 'correct' : 'filled',
+        status: isCorrect ? 'correct' : 'incorrect',
       );
+      currentIndex++;
 
-      if (answerBoxes.every((box) => box.letter.isNotEmpty)) {
+      // Move to the next non-prefilled box
+      while (currentIndex < answerBoxes.length &&
+          answerBoxes[currentIndex].status == 'prefilled') {
+        currentIndex++;
+      }
+
+      if (currentIndex == answerBoxes.length ||
+          answerBoxes.every((box) => box.letter.isNotEmpty)) {
         handleGuess(answerBoxes.map((box) => box.letter).join(''));
       }
     }
     notifyListeners();
   }
 
+  void handleClearLetter() {
+    if (currentIndex > 0) {
+      do {
+        currentIndex--;
+      } while (
+          currentIndex > 0 && answerBoxes[currentIndex].status == 'prefilled');
+
+      if (answerBoxes[currentIndex].status != 'prefilled') {
+        answerBoxes[currentIndex] = AnswerBox(letter: '', status: 'empty');
+      }
+    }
+    notifyListeners();
+  }
+
+  void handleRefresh() {
+    answerBoxes = answerBoxes.map((box) {
+      if (box.status == 'prefilled') {
+        return box;
+      } else {
+        return AnswerBox(letter: '', status: 'empty');
+      }
+    }).toList();
+    currentIndex = answerBoxes.indexWhere((box) => box.status == 'empty');
+    notifyListeners();
+  }
+
   void handleGuess(String guess) {
     final normalizedGuess = guess.toUpperCase().trim().replaceAll(' ', '');
-    final normalizedCountry = currentFlag.country.toUpperCase().trim().replaceAll(' ', '');
+    final normalizedCountry =
+        currentFlag.country.toUpperCase().trim().replaceAll(' ', '');
 
     if (normalizedGuess == normalizedCountry) {
       handleCorrectGuess();
@@ -110,8 +155,13 @@ class GameLogic extends ChangeNotifier {
   void handleCorrectGuess() {
     final timeBonus = (timer / 3).ceil();
     final levelBonus = level * 10;
-    final difficultyMultiplier = gameMode == 'easy' ? 1 : gameMode == 'medium' ? 1.5 : 2;
-    final guessScore = ((100 + timeBonus + levelBonus) * difficultyMultiplier).round();
+    final difficultyMultiplier = gameMode == 'easy'
+        ? 1
+        : gameMode == 'medium'
+            ? 1.5
+            : 2;
+    final guessScore =
+        ((100 + timeBonus + levelBonus) * difficultyMultiplier).round();
 
     score += guessScore;
     stars++;
@@ -142,9 +192,11 @@ class GameLogic extends ChangeNotifier {
       _gameOver();
     } else {
       Future.delayed(Duration(seconds: 2), () {
-        answerBoxes = answerBoxes.map((box) => 
-          box.status == 'prefilled' ? box : AnswerBox(letter: '', status: 'empty')
-        ).toList();
+        answerBoxes = answerBoxes
+            .map((box) => box.status == 'prefilled'
+                ? box
+                : AnswerBox(letter: '', status: 'empty'))
+            .toList();
         notifyListeners();
       });
     }
@@ -170,33 +222,14 @@ class GameLogic extends ChangeNotifier {
     startNewGame();
   }
 
-  void handleClearLetter() {
-    for (int i = answerBoxes.length - 1; i >= 0; i--) {
-      if (answerBoxes[i].status == 'filled') {
-        answerBoxes[i] = AnswerBox(letter: '', status: 'empty');
-        break;
-      }
-    }
-    notifyListeners();
-  }
-
-  void handleRefresh() {
-    answerBoxes = answerBoxes.map((box) {
-      if (box.status == 'prefilled') {
-        return box;
-      } else {
-        return AnswerBox(letter: '', status: 'empty');
-      }
-    }).toList();
-    notifyListeners();
-  }
-
   void handleHint() {
     if (hints > 0 && gameMode != 'hard') {
-      final emptyBoxIndex = answerBoxes.indexWhere((box) => box.status == 'empty');
+      final emptyBoxIndex =
+          answerBoxes.indexWhere((box) => box.status == 'empty');
       if (emptyBoxIndex != -1) {
         final correctLetter = currentFlag.country[emptyBoxIndex].toUpperCase();
-        answerBoxes[emptyBoxIndex] = AnswerBox(letter: correctLetter, status: 'hint');
+        answerBoxes[emptyBoxIndex] =
+            AnswerBox(letter: correctLetter, status: 'hint');
         hints--;
         notifyListeners();
       }
