@@ -20,11 +20,3 @@
 5. **Timer**: Guess the correct country before the timer runs out.
 6. **Score**: Earn points for each correct guess and try to achieve the highest score possible.
 7. **Lives**: You have a limited number of lives; incorrect guesses will cost you a life.
-
-## Installation
-
-To run the Flag Guessing Game on your local machine, follow these steps:
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/yourusername/flag_guessing_game.git
